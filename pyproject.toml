@@ -30,6 +30,8 @@ dev = [
     "sphinx-autoapi==2.0.1", # Used to automatically generate api documentation
     "black", # Used for static linting of files
     "mypy", # Used for static type checking of files
+    "scipy",
+    "tiledb",
 ]
 
 [build-system]
