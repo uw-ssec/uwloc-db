@@ -1,5 +1,5 @@
 [project]
-name = "uwloc-db"
+name = "uwloc-data"
 license = {file = "LICENSE"}
 readme = "README.md"
 authors = [
@@ -17,6 +17,9 @@ dynamic = ["version"]
 dependencies = [
     "deprecated",
     "ipykernel", # Support for Jupyter notebooks
+    "scipy",
+    "tiledb",
+    "typer",
 ]
 
 # On a mac, install optional dependencies with `pip install '.[dev]'` (include the single quotes)
@@ -30,8 +33,6 @@ dev = [
     "sphinx-autoapi==2.0.1", # Used to automatically generate api documentation
     "black", # Used for static linting of files
     "mypy", # Used for static type checking of files
-    "scipy",
-    "tiledb",
 ]
 
 [build-system]
@@ -42,7 +43,7 @@ requires = [
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools_scm]
-write_to = "src/uwloc_data/_version.py"
+write_to = "src/uwloc/data/_version.py"
 
 [tool.black]
 line-length = 110

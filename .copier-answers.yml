@@ -6,10 +6,10 @@ author_name: University of Washington - SSEC
 create_example_module: true
 custom_install: true
 include_notebooks: false
-module_name: uwloc_data
+module_name: uwloc-data
 mypy_type_checking: strict
 preferred_linter: black
 project_license: MIT
-project_name: uwloc-db
+project_name: uwloc-data
 use_gitlfs: none
 use_isort: true

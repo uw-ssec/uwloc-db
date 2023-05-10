@@ -16,10 +16,10 @@ sys.path.insert(0, os.path.abspath('../src/'))
 # -- Project information -----------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
 
-project = "uwloc-db"
+project = "uwloc-data"
 copyright = "2023, University of Washington - SSEC"
 author = "University of Washington - SSEC"
-release = version("uwloc-db")
+release = version("uwloc-data")
 # for example take major/minor
 version = ".".join(release.split(".")[:2])
 
