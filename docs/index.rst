@@ -1,8 +1,8 @@
-.. uwloc_data documentation main file.
+.. uwloc-data documentation main file.
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-Welcome to uwloc_data's documentation!
+Welcome to uwloc-data's documentation!
 ========================================================================================
 
 .. toctree::
