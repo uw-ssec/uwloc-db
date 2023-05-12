@@ -35,6 +35,7 @@ dev = [
     "black", # Used for static linting of files
     "mypy", # Used for static type checking of files
     "hatch",
+    "matplotlib",
 ]
 [build-system]
 requires = ["hatchling", "hatch-vcs"]
@@ -60,3 +61,6 @@ ignore_missing_imports = true
 profile = "black"
 
 
+[tool.pytest.ini_options]
+log_cli = true
+log_cli_level = "INFO"
