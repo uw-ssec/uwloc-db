@@ -1,3 +1,7 @@
+[build-system]
+requires = ["hatchling", "hatch-vcs"]
+build-backend = "hatchling.build"
+
 [project]
 name = "uwloc-data"
 license = {file = "LICENSE"}
@@ -14,6 +18,7 @@ classifiers = [
     "Programming Language :: Python",
 ]
 dynamic = ["version"]
+requires-python = ">=3.10"
 dependencies = [
     "deprecated",
     "ipykernel", # Support for Jupyter notebooks
@@ -37,9 +42,16 @@ dev = [
     "hatch",
     "matplotlib",
 ]
-[build-system]
-requires = ["hatchling", "hatch-vcs"]
-build-backend = "hatchling.build"
+[tool.hatch.version.raw-options]
+local_scheme = "no-local-version"
+
+[tool.hatch.build.targets.sdist]
+include = [
+    "src/uwloc",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/uwloc"]
 
 [tool.hatch.version]
 source = "vcs"
