@@ -5,12 +5,16 @@ from pathlib import Path
 import numpy as np
 
 from uwloc.data.tile import (
+    ATTRIB_SAMPLE,
+    ATTRIB_TS,
     DEVICES_ARRAY_NAME,
+    DIM_DEVICE,
     RATE,
     _get_row_id,
     create,
     get_devices,
     read_device_slice,
+    to_pandas,
     write_row,
 )
 from uwloc.data.wav import read_wav
@@ -26,7 +30,7 @@ def test_import(tmp_path: Path) -> None:
     testwav = os.path.join(os.path.dirname(__file__), "../../../data/test.wav")
 
     # read wav data
-    id, _, rate, data = read_wav(testwav)
+    id, timestamp, rate, data = read_wav(testwav)
     assert id == TEST_DEVICE_ID
     assert rate == RATE
     assert data.size > 200000
@@ -38,7 +42,7 @@ def test_import(tmp_path: Path) -> None:
     assert _get_row_id(dev_array, "NEWID") == (0, False)
 
     # write data
-    write_row(dbpath, id, data)
+    write_row(dbpath, id, timestamp, data)
     # the imported data should get the first row id
     assert _get_row_id(dev_array, TEST_DEVICE_ID) == (0, True)
     # now the new ID will be 1
@@ -51,3 +55,9 @@ def test_import(tmp_path: Path) -> None:
     assert np.sum(data) != 0
     empty_data = read_device_slice(str(dbpath), "non existent", 2, 3)
     assert empty_data.shape[0] == 0  # emtpy
+
+    df = to_pandas(str(dbpath))
+    assert len(df) == 1
+    assert len(df.columns) == 3
+    for c in [DIM_DEVICE, ATTRIB_TS, ATTRIB_SAMPLE]:
+        assert c in df.columns

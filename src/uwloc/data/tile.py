@@ -1,9 +1,11 @@
 import logging
 import os
+from datetime import datetime
 from typing import Tuple
 
 import numpy as np
 import numpy.typing as npt
+import pandas as pd
 import tiledb
 
 logger = logging.getLogger(__name__)
@@ -16,6 +18,7 @@ DIM_UNIT = "unit"
 DIM_TIME = "time"
 ATTRIB_SAMPLE = "sample"
 ATTRIB_ROW = "row"
+ATTRIB_TS = "timestamp"
 
 META_DEPL_DATE = "Deployment_Date"
 META_RATE = "Sampling_Rate"
@@ -49,18 +52,20 @@ def create(
     _create_devices_array(dbpath)
 
 
-def write_row(dbpath: str, device: str, samples: npt.NDArray[np.int16]) -> None:
+def write_row(dbpath: str, device: str, timestamp: datetime, samples: npt.NDArray[np.int16]) -> None:
     """
     Writes a row of data for the given devide ID
     """
     assert samples.ndim == 1, "Expected a 1D array"
     assert samples.dtype == np.int16, "Expected 16 bit PCM data"
-    sam_path = os.path.join(dbpath, SAMPLES_ARRAY_NAME)
-    dev_path = os.path.join(dbpath, DEVICES_ARRAY_NAME)
+    sam_path, dev_path = _get_array_paths(dbpath)
 
+    # TODO: The timestamp should refer to the first recording for the device
+    # we need to enforce this and append/shift data accordingly
     row_id, _ = _get_row_id(dev_path, device)
     with tiledb.open(dev_path, "w") as dev_array:
-        dev_array[device] = row_id
+        dev_array[device] = {ATTRIB_ROW: row_id, ATTRIB_TS: timestamp}
+
     tiledb.consolidate(dev_path)
     tiledb.vacuum(dev_path)
 
@@ -74,7 +79,7 @@ def get_devices(dbpath: str) -> npt.NDArray[np.str_]:
     """
     Fetch a list of device IDs in the given database
     """
-    dev_path = os.path.join(dbpath, DEVICES_ARRAY_NAME)
+    _, dev_path = _get_array_paths(dbpath)
 
     with tiledb.open(dev_path, "r") as dev_array:
         # convert to str since these are natively stored as bytes
@@ -86,8 +91,7 @@ def read_device_slice(dbpath: str, device: str, secs_start: int, secs_end: int) 
     """
     Read a slice of audio data for the given device and time range (in seconds)
     """
-    sam_path = os.path.join(dbpath, SAMPLES_ARRAY_NAME)
-    dev_path = os.path.join(dbpath, DEVICES_ARRAY_NAME)
+    sam_path, dev_path = _get_array_paths(dbpath)
     row_id, exists = _get_row_id(dev_path, device)
     if not exists:
         logger.warning(f"Device '{device}' not found")
@@ -104,8 +108,7 @@ def read_slice(dbpath: str, secs_start: int, secs_end: int) -> npt.NDArray[np.in
     """
     Read a slice (time range) of audio data across all devices
     """
-    sam_path = os.path.join(dbpath, SAMPLES_ARRAY_NAME)
-    dev_path = os.path.join(dbpath, DEVICES_ARRAY_NAME)
+    sam_path, dev_path = _get_array_paths(dbpath)
 
     last_row, _ = _get_row_id(dev_path, "NON_EXISTENT")
     with tiledb.open(sam_path, "r") as sam_array:
@@ -113,6 +116,34 @@ def read_slice(dbpath: str, secs_start: int, secs_end: int) -> npt.NDArray[np.in
             ATTRIB_SAMPLE
         ]
         return data
+
+
+def to_pandas(dbpath: str) -> pd.DataFrame:
+    """
+    Read the database into a pandas dataframe
+    """
+    sam_path, dev_path = _get_array_paths(dbpath)
+
+    # get device id, row id and timestamp from the sparce devices array
+    with tiledb.open(dev_path, "r") as dev_array:
+        d = dev_array[:]
+
+    # read the dense samples data
+    with tiledb.open(sam_path, "r") as sam_array:
+        samples = sam_array[0 : len(d)][ATTRIB_SAMPLE]
+
+    columns = [DIM_DEVICE, ATTRIB_TS]
+    data = {c: d[c] for c in columns}
+    # TODO: This could be large but the access patterns and uses cases are not
+    # known yet to make this more optimized.
+    data[ATTRIB_SAMPLE] = list(samples)
+    return pd.DataFrame(data, index=d[ATTRIB_ROW])
+
+
+def _get_array_paths(dbpath: str) -> Tuple[str, str]:
+    sam_path = os.path.join(dbpath, SAMPLES_ARRAY_NAME)
+    dev_path = os.path.join(dbpath, DEVICES_ARRAY_NAME)
+    return (sam_path, dev_path)
 
 
 def _create_samples_array(max_units: int, max_hrs: int, dbpath: str) -> None:
@@ -140,7 +171,9 @@ def _create_devices_array(dbpath: str) -> None:
     id_dim = tiledb.Dim(name=DIM_DEVICE, dtype="ascii")
     dom = tiledb.Domain(id_dim)
     attrib_ix = tiledb.Attr(name=ATTRIB_ROW, dtype=np.int16)
-    schema = tiledb.ArraySchema(domain=dom, sparse=True, attrs=[attrib_ix])
+    # timestamp at millisecond resolution
+    attrib_ts = tiledb.Attr(name=ATTRIB_TS, dtype=np.datetime64("", "ms").dtype)
+    schema = tiledb.ArraySchema(domain=dom, sparse=True, attrs=[attrib_ix, attrib_ts])
     tiledb.Array.create(arr_path, schema)
 
 

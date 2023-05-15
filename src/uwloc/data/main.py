@@ -45,7 +45,7 @@ def _import(wavs_dir: str, dbpath: str) -> None:
         typer.echo(
             f"Importing  {f}. Timestamp: {timestamp} Device: {device}, rate: {rate}, dtype: {data.dtype}, secs: {secs}"
         )
-        write_row(dbpath, device, data)
+        write_row(dbpath, device, timestamp, data)
 
 
 if __name__ == "__main__":
