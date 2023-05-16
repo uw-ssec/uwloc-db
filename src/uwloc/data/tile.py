@@ -54,7 +54,7 @@ def create(
 
 def write_row(dbpath: str, device: str, timestamp: datetime, samples: npt.NDArray[np.int16]) -> None:
     """
-    Writes a row of data for the given devide ID
+    Writes a row of data for the given device ID
     """
     assert samples.ndim == 1, "Expected a 1D array"
     assert samples.dtype == np.int16, "Expected 16 bit PCM data"
