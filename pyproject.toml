@@ -26,6 +26,7 @@ dependencies = [
     "tiledb",
     "typer",
     "wavinfo",
+    "pandas>=2.0",
 ]
 
 # On a mac, install optional dependencies with `pip install '.[dev]'` (include the single quotes)
@@ -41,6 +42,7 @@ dev = [
     "mypy", # Used for static type checking of files
     "hatch",
     "matplotlib",
+    "jupyter==1.0.0",
 ]
 [tool.hatch.version.raw-options]
 local_scheme = "no-local-version"
@@ -64,7 +66,7 @@ version-file = "src/uwloc/data/_version.py"
 line-length = 110
 
 [project.scripts]
-wavdb = "uwloc.data.main:main"
+wavdb = "uwloc.data.main:app"
 
 [tool.mypy]
 ignore_missing_imports = true

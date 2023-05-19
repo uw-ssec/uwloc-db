@@ -7,7 +7,7 @@ from typing_extensions import Annotated
 from .tile import MAX_HOURS, MAX_UNITS, create, init_tiledb, write_row
 from .wav import read_wav
 
-main = typer.Typer()
+app = typer.Typer()
 
 
 def fail(msg: str) -> None:
@@ -15,7 +15,7 @@ def fail(msg: str) -> None:
     raise typer.Exit(code=1)
 
 
-@main.command()
+@app.command()
 def initdb(
     dbpath: str,
     max_units: Annotated[
@@ -27,8 +27,8 @@ def initdb(
     create(dbpath, max_units, max_hrs)
 
 
-@main.command(name="import")
-def _import(wavs_dir: str, dbpath: str) -> None:
+@app.command(name="import")
+def import_wavs(wavs_dir: str, dbpath: str) -> None:
     typer.echo(f"Uploading WAV files from {wavs_dir} {dbpath}")
     if not os.path.isdir(dbpath):
         fail(f"TileDB '{dbpath}' not found. Run initdb command first.")
@@ -45,9 +45,9 @@ def _import(wavs_dir: str, dbpath: str) -> None:
         typer.echo(
             f"Importing  {f}. Timestamp: {timestamp} Device: {device}, rate: {rate}, dtype: {data.dtype}, secs: {secs}"
         )
-        write_row(dbpath, device, data)
+        write_row(dbpath, device, timestamp, data)
 
 
 if __name__ == "__main__":
     init_tiledb()
-    main()
+    app()
