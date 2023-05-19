@@ -1,3 +1,7 @@
+[build-system]
+requires = ["hatchling", "hatch-vcs"]
+build-backend = "hatchling.build"
+
 [project]
 name = "uwloc-data"
 license = {file = "LICENSE"}
@@ -14,12 +18,15 @@ classifiers = [
     "Programming Language :: Python",
 ]
 dynamic = ["version"]
+requires-python = ">=3.10"
 dependencies = [
     "deprecated",
     "ipykernel", # Support for Jupyter notebooks
     "scipy",
     "tiledb",
     "typer",
+    "wavinfo",
+    "pandas>=2.0",
 ]
 
 # On a mac, install optional dependencies with `pip install '.[dev]'` (include the single quotes)
@@ -33,19 +40,41 @@ dev = [
     "sphinx-autoapi==2.0.1", # Used to automatically generate api documentation
     "black", # Used for static linting of files
     "mypy", # Used for static type checking of files
+    "hatch",
+    "matplotlib",
+    "jupyter==1.0.0",
+]
+[tool.hatch.version.raw-options]
+local_scheme = "no-local-version"
+
+[tool.hatch.build.targets.sdist]
+include = [
+    "src/uwloc",
 ]
 
-[build-system]
-requires = [
-    "setuptools>=45", # Used to build and package the Python project
-    "setuptools_scm>=6.2", # Gets release version from git. Makes it available programmatically
-]
-build-backend = "setuptools.build_meta"
+[tool.hatch.build.targets.wheel]
+packages = ["src/uwloc"]
 
-[tool.setuptools_scm]
-write_to = "src/uwloc/data/_version.py"
+[tool.hatch.version]
+source = "vcs"
+
+# [tool.setuptools_scm]
+[tool.hatch.build.hooks.vcs]
+version-file = "src/uwloc/data/_version.py"
 
 [tool.black]
 line-length = 110
 
+[project.scripts]
+wavdb = "uwloc.data.main:app"
 
+[tool.mypy]
+ignore_missing_imports = true
+
+[tool.isort]
+profile = "black"
+
+
+[tool.pytest.ini_options]
+log_cli = true
+log_cli_level = "INFO"
