@@ -29,7 +29,7 @@ def initdb(
     start_date: datetime = _find_start_date(wavs_dir)
     typer.echo(f"Initializing TileDB in {dbpath} with start date: {start_date}")
     create(dbpath, start_date, max_units, max_hrs)
-    import_wavs(wavs_dir, dbpath)
+    import_wavs(dbpath, wavs_dir)
 
 
 @app.command(name="import")
