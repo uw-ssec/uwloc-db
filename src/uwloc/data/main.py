@@ -33,7 +33,10 @@ def initdb(
 
 
 @app.command(name="import")
-def import_wavs(wavs_dir: str, dbpath: str) -> None:
+def import_wavs(
+    dbpath: str,
+    wavs_dir: str,
+) -> None:
     typer.echo(f"Uploading WAV files from {wavs_dir} {dbpath}")
     if not os.path.isdir(dbpath):
         fail(f"TileDB '{dbpath}' not found. Run initdb command first.")

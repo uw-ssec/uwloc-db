@@ -31,6 +31,6 @@ jobs:
         python -m pytest -vvv tests
     - name: Integration tests
       run: |
-        wavdb initdb ./tmp
-        wavdb import data/. ./tmp
+        wavdb initdb ./tmp data/.
+        wavdb import ./tmp data/.
     
