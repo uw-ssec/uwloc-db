@@ -12,7 +12,9 @@ logger = logging.getLogger(__name__)
 
 
 def parse_date(dstr: str) -> datetime:
-    assert "(UTC" in dstr, "Expected a timezone suffix of the form: (UTC-<offset>)"
+    if "(UTC" not in dstr:
+        raise ValueError("Expected a timezone suffix of the form: (UTC-<offset>)")
+
     DATE_FORMAT = "%H:%M:%S %d/%m/%Y"
     parts = dstr.split(" ")  # TIME, DATE, TIMEZONE
     sdate_notz = " ".join(parts[0:2])
