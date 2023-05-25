@@ -1,5 +1,6 @@
 import logging
 import os
+from datetime import datetime, timedelta
 from pathlib import Path
 
 import numpy as np
@@ -37,7 +38,7 @@ def test_import(tmp_path: Path) -> None:
     logger.info(f"Data size: {data.size}")
 
     # create new DB
-    create(str(dbpath), 1, 1)
+    create(str(dbpath), timestamp, 1, 1)
     # empty DB case, first row is 0
     assert _get_row_id(dev_array, "NEWID") == (0, False)
 
@@ -47,6 +48,18 @@ def test_import(tmp_path: Path) -> None:
     assert _get_row_id(dev_array, TEST_DEVICE_ID) == (0, True)
     # now the new ID will be 1
     assert _get_row_id(dev_array, "NEWID") == (1, False)
+
+    def _write_fail(bad_timestamp: datetime) -> None:
+        try:
+            write_row(dbpath, id, bad_timestamp, data)
+            assert False, f"Writing at {bad_timestamp} should fail"
+        except Exception:
+            pass
+
+    # Test writing outside the DB boundaries
+    dt = timedelta(seconds=20)
+    _write_fail(timestamp + dt)
+    _write_fail(timestamp - dt)
 
     # read data
     assert get_devices(str(dbpath)) == [TEST_DEVICE_ID]
