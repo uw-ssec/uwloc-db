@@ -43,6 +43,8 @@ dev = [
     "hatch",
     "matplotlib",
     "jupyter==1.0.0",
+    "types-pytz",
+    "types-python-dateutil",
 ]
 [tool.hatch.version.raw-options]
 local_scheme = "no-local-version"

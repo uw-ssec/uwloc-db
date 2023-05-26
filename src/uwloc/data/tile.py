@@ -1,7 +1,7 @@
 import logging
 import os
 from datetime import datetime
-from typing import Tuple
+from typing import Any, Tuple
 
 import numpy as np
 import numpy.typing as npt
@@ -9,6 +9,7 @@ import pandas as pd
 import tiledb
 
 logger = logging.getLogger(__name__)
+
 
 # constants
 SAMPLES_ARRAY_NAME = "samples"
@@ -20,14 +21,15 @@ ATTRIB_SAMPLE = "sample"
 ATTRIB_ROW = "row"
 ATTRIB_TS = "timestamp"
 
-META_DEPL_DATE = "Deployment_Date"
 META_RATE = "Sampling_Rate"
+META_START_DATE = "Start_Date"
 
 RATE = 192000
-MAX_HOURS = 1  # 7 * 24  # ??
+MAX_HOURS = 7  # 7 * 24  # ??
 MAX_TIME = RATE * MAX_HOURS * 3600
 EXTENT_HR = 3600 * RATE  # make tiles 1 hr wide?
 EXTENT_MIN = 60 * RATE  # make tiles 1 min wide?
+EXTENT_10S = 10 * RATE  # make tiles 1 min wide?
 MAX_UNITS = 32
 
 
@@ -40,6 +42,7 @@ def init_tiledb() -> None:
 
 def create(
     dbpath: str,
+    start_date: datetime,
     max_units: int,
     max_hrs: int,
 ) -> None:
@@ -48,7 +51,7 @@ def create(
     """
     if not os.path.exists(dbpath):
         tiledb.group_create(dbpath)
-    _create_samples_array(max_units, max_hrs, dbpath)
+    _create_samples_array(start_date, max_units, max_hrs, dbpath)
     _create_devices_array(dbpath)
 
 
@@ -66,12 +69,27 @@ def write_row(dbpath: str, device: str, timestamp: datetime, samples: npt.NDArra
     with tiledb.open(dev_path, "w") as dev_array:
         dev_array[device] = {ATTRIB_ROW: row_id, ATTRIB_TS: timestamp}
 
+    start_date = read_start_date(dbpath)
+    if timestamp < start_date:
+        raise ValueError(f"The timestamp {timestamp} is before the start date of the db ({start_date})")
+
+    index = int((timestamp - start_date).total_seconds() * RATE)
+    schema = tiledb.ArraySchema.load(sam_path)
+    capacity = schema.domain.dim(DIM_TIME).size
+    if index + samples.size > capacity:
+        raise ValueError(
+            f"The start timestamp ({timestamp}) and length ({samples.size}) "
+            f"exceeds the DB capacity: {capacity}"
+        )
+    with tiledb.open(sam_path, "w") as sam_array:
+        sam_array[row_id, index : index + samples.size] = samples
+
+
+def tidy(dbpath: str) -> None:
+    sam_path, dev_path = _get_array_paths(dbpath)
+    tiledb.consolidate(sam_path)
     tiledb.consolidate(dev_path)
     tiledb.vacuum(dev_path)
-
-    with tiledb.open(sam_path, "w") as sam_array:
-        sam_array[row_id, 0 : samples.size] = samples
-    tiledb.consolidate(sam_path)
     tiledb.vacuum(sam_path)
 
 
@@ -87,6 +105,21 @@ def get_devices(dbpath: str) -> npt.NDArray[np.str_]:
         return devices
 
 
+def read_start_date(dbpath: str) -> datetime:
+    """
+    Read a slice of audio data for the given device and time range (in seconds)
+    """
+    sam_path, _ = _get_array_paths(dbpath)
+
+    with tiledb.open(sam_path, "r") as sam_array:
+        return _get_start_date(sam_array)
+
+
+def _get_start_date(sam_array: Any) -> datetime:
+    str_date = sam_array.meta[META_START_DATE]
+    return datetime.fromisoformat(str_date)
+
+
 def read_device_slice(dbpath: str, device: str, secs_start: int, secs_end: int) -> npt.NDArray[np.int16]:
     """
     Read a slice of audio data for the given device and time range (in seconds)
@@ -98,9 +131,12 @@ def read_device_slice(dbpath: str, device: str, secs_start: int, secs_end: int) 
         return np.empty(0, dtype=np.int16)
 
     with tiledb.open(sam_path, "r") as sam_array:
+        # tiledb.stats_enable()
         data: npt.NDArray[np.int16] = sam_array[row_id, samples_sec(secs_start) : samples_sec(secs_end)][
             ATTRIB_SAMPLE
         ]
+        # tiledb.stats_dump()
+        # tiledb.stats_disable()
         return data
 
 
@@ -130,7 +166,7 @@ def to_pandas(dbpath: str) -> pd.DataFrame:
 
     # read the dense samples data
     with tiledb.open(sam_path, "r") as sam_array:
-        samples = sam_array[0 : len(d)][ATTRIB_SAMPLE]
+        samples = sam_array[0 : len(d[DIM_DEVICE])][ATTRIB_SAMPLE]
 
     columns = [DIM_DEVICE, ATTRIB_TS]
     data = {c: d[c] for c in columns}
@@ -146,7 +182,7 @@ def _get_array_paths(dbpath: str) -> Tuple[str, str]:
     return (sam_path, dev_path)
 
 
-def _create_samples_array(max_units: int, max_hrs: int, dbpath: str) -> None:
+def _create_samples_array(start_date: datetime, max_units: int, max_hrs: int, dbpath: str) -> None:
     arr_path = os.path.join(dbpath, SAMPLES_ARRAY_NAME)
     if os.path.exists(arr_path):
         logger.warning(f"Not creating {arr_path} because it already exists")
@@ -160,6 +196,8 @@ def _create_samples_array(max_units: int, max_hrs: int, dbpath: str) -> None:
     attrib_sample = tiledb.Attr(name=ATTRIB_SAMPLE, dtype=np.int16)
     schema = tiledb.ArraySchema(domain=dom1, sparse=False, attrs=[attrib_sample])
     tiledb.Array.create(arr_path, schema)
+    with tiledb.open(arr_path, "w") as sam_array:
+        sam_array.meta[META_START_DATE] = start_date.isoformat()
 
 
 def _create_devices_array(dbpath: str) -> None:
