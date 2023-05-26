@@ -1,5 +1,5 @@
 import logging
-from datetime import datetime, timezone
+from datetime import datetime, timedelta
 from typing import Tuple
 
 import numpy as np
@@ -7,23 +7,20 @@ import numpy.typing as npt
 import pytz
 import scipy.io.wavfile as wf
 import wavinfo
+from dateutil import parser
 
 logger = logging.getLogger(__name__)
 
 
 def parse_date(dstr: str) -> datetime:
-    if "(UTC" not in dstr:
-        raise ValueError("Expected a timezone suffix of the form: (UTC-<offset>)")
-
-    DATE_FORMAT = "%H:%M:%S %d/%m/%Y"
-    parts = dstr.split(" ")  # TIME, DATE, TIMEZONE
-    sdate_notz = " ".join(parts[0:2])
-    offset_hr = int(parts[2].replace("(UTC", "").replace(")", "").strip() or 0)
-    date = (
-        datetime.strptime(sdate_notz, DATE_FORMAT)
-        .replace(tzinfo=pytz.FixedOffset(offset_hr * 60))
-        .astimezone(timezone.utc)
-    )
+    # Positive due to unix artifact
+    # See https://pubs.opengroup.org/onlinepubs/7908799/xsh/tzset.html
+    # See https://stackoverflow.com/questions/11984618/why-does-python-return-a-negative-timezone-value
+    dt = parser.parse(dstr, fuzzy=True)
+    if dt.tzinfo is None:
+        raise ValueError(f"'{dstr}' is missing time zone info")
+    offset = dt.tzinfo.utcoffset(dt) or timedelta(0)
+    date = (dt + offset).replace(tzinfo=pytz.utc)
     return date
 
 
