@@ -10,11 +10,13 @@ from .tile import MAX_HOURS, MAX_UNITS, create, init_tiledb, tidy, write_row
 from .wav import read_wav, read_wav_metadata
 
 WAV_PATTERN = "**/*.[wW][aA][vV]"
-app = typer.Typer()
+
 logger = logging.getLogger(__name__)
 logging.basicConfig(
     level=logging.INFO, format="%(asctime)s %(levelname)s %(module)s %(funcName)s %(message)s"
 )
+
+app = typer.Typer()
 
 
 def fail(msg: str) -> None:
@@ -57,7 +59,7 @@ def import_wavs(
             typer.echo(f"Importing  {f}. Timestamp: {timestamp} Device: {device}, secs: {secs}")
             write_row(dbpath, device, timestamp, data)
         except Exception as e:
-            logger.warning(f"Warning: Failed to import {f}. {e}")
+            logger.error(f"Failed to import {f}. {e}")
     tidy(dbpath)
 
 
@@ -69,7 +71,7 @@ def _find_start_date(wavs_dir: str) -> datetime:
             _, timestamp = read_wav_metadata(f)
             start_date = min(timestamp, start_date)
         except Exception as e:
-            logger.warning(f"Warning: Failed to read {f}. {e}")
+            logger.warning(f"Failed to read {f}. {e}")
     return start_date
 
 
