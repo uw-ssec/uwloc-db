@@ -37,4 +37,9 @@ jobs:
     - name: Integration tests
       run: |
         wavdb initdb ./tmp data/.
-        wavdb import ./tmp data/.
+        wavdb import ./tmp data/.          
+    - name: Test notebooks
+      run: |
+        wavdb initdb ~/wdb data/.
+        cd notebooks
+        jb build . -W
