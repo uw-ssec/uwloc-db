@@ -42,5 +42,5 @@ jobs:
       run: |
         wavdb initdb ~/wdb data/.
         cd notebooks
-        pip install jupyter-book>=0.15.1
+        pip install -r requirements.txt
         jb build . -W
