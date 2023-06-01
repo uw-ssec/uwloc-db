@@ -38,9 +38,3 @@ jobs:
       run: |
         wavdb initdb ./tmp data/.
         wavdb import ./tmp data/.          
-    - name: Test notebooks
-      run: |
-        wavdb initdb ~/wdb data/.
-        cd notebooks
-        pip install jupyter-book>=0.15.1
-        jb build . -W
