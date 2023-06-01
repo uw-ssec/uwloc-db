@@ -35,15 +35,14 @@ jobs:
         uses: actions/checkout@v3
       - name: Install the package
         run: |
-          sudo apt-get update
           python -m pip install --upgrade pip
           pip install -e ".[dev]"
-          pip install jupyter-book
+          pip install jupyter-book>=0.15.1
       - name: Build pages
         run: |
-          wavdb initdb ~/tmp data/.
+          wavdb initdb ~/wdb data/.
           cd notebooks
-          jb build .
+          jb build . -W
       - name: Setup Pages
         uses: actions/configure-pages@v3        
       - name: Upload artifact
