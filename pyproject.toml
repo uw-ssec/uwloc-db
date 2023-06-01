@@ -43,7 +43,6 @@ dev = [
     "hatch",
     "matplotlib",
     "jupyter==1.0.0",
-    "jupyter-book>=0.15.1",
     "types-pytz",
     "types-python-dateutil",
 ]
